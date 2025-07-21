@@ -1,5 +1,6 @@
 import sys
 [sys.path.append(i) for i in ['.', '..', '../process', '../model', '../../ubisoft-laforge-ZeroEGGS-main', '../../ubisoft-laforge-ZeroEGGS-main/ZEGGS']]
+
 from model.mdm import MDM
 from utils.model_util import create_gaussian_diffusion, load_model_wo_clip
 import subprocess
@@ -50,8 +51,9 @@ def wav2wavlm(model, wav_input_16khz, device=torch.device('cuda:2')):
 
 def create_model_and_diffusion(args):
     model = MDM(modeltype='', njoints=1141, nfeats=1, translation=True, pose_rep='rot6d', glob=True,
-                glob_rot=True, cond_mode = 'cross_local_attention3_style1', clip_version = 'ViT-B/32', action_emb = 'tensor', audio_feat=args.audio_feat,
-                arch='trans_enc', latent_dim=256, n_seed=8)        # trans_enc, trans_dec, gru, mytrans_enc
+                glob_rot=True, cond_mode = 'cross_local_attention3_style1', clip_version = 'ViT-B/32', action_emb = 'tensor', audio_feat=args.audio_feat, motion_dim=args.motion_dim,
+                arch='trans_enc', latent_dim=256, n_seed=8)  
+
     diffusion = create_gaussian_diffusion()
     return model, diffusion
 
@@ -90,9 +92,12 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
             model_kwargs_['y']['audio'] = audio_reshape[:, i:i + 1, :]
             if i == 0:
                 if n_seed != 0:
-                    pad_zeros = torch.zeros([n_seed, 1, 13]).to(mydevice)        # mfcc dims are 13
+                    feat_dim  = model_kwargs_['y']['audio'].shape[2] 
+                    pad_zeros = torch.zeros([n_seed, 1, feat_dim], device=mydevice)
+
+                    #pad_zeros = torch.zeros([n_seed, 1, 13]).to(mydevice)        # mfcc dims are 13
                     model_kwargs_['y']['audio'] = torch.cat((pad_zeros, model_kwargs_['y']['audio']), 0)
-                    model_kwargs_['y']['seed'] = torch.zeros([1, 1141, 1, n_seed]).to(mydevice)
+                    model_kwargs_['y']['seed'] = torch.zeros([1, model.njoints, 1, n_seed]).to(mydevice)
             else:
                 if n_seed != 0:
                     pad_audio = audio_reshape[-n_seed:, i - 1:i, :]
@@ -168,7 +173,7 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
     else:
         model_kwargs_['y']['audio'] = torch.from_numpy(mfcc).to(torch.float32).unsqueeze(0).to(mydevice).permute(1, 0, 2)
         shape_ = (batch_size, model.njoints, model.nfeats, n_frames)
-        model_kwargs_['y']['seed'] = torch.zeros([1, 1141, 1, n_seed]).to(mydevice)
+        model_kwargs_['y']['seed'] = torch.zeros([1, model.njoints, 1, n_seed]).to(mydevice)
         sample = sample_fn(
             model,
             shape_,
@@ -184,8 +189,8 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
         out_dir_vec = sample.data.cpu().numpy()
         sampled_seq = out_dir_vec.squeeze(2).transpose(0, 2, 1).reshape(batch_size, n_frames, model.njoints)
 
-    data_mean_ = np.load("../../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/mean.npz")['mean'].squeeze()
-    data_std_ = np.load("../../ubisoft-laforge-ZeroEGGS-main/data/processed_v1/processed/std.npz")['std'].squeeze()
+    data_mean_ = np.load("/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/processed_lmdb/mean.npz")['mean'].squeeze()
+    data_std_ = np.load("/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/processed_lmdb/std.npz")['std'].squeeze()
 
     data_mean = np.array(data_mean_).squeeze()
     data_std = np.array(data_std_).squeeze()
@@ -201,6 +206,7 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
     prefix += '_%s' % (n_frames)
     prefix += '_' + str(style)
     prefix += '_' + str(seed)
+    np.save(os.path.join(save_dir, prefix + '.npy'), out_poses)
     if minibatch:
         pose2bvh(out_poses, os.path.join(save_dir, prefix + '.bvh'), length=n_frames - n_seed, smoothing=SG_filter)
     else:
@@ -350,8 +356,9 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audiowavlm
         audio_name = audio_path.split('/')[-1]
         print('normalize audio: ' + audio_name)
         normalize_wav_path = os.path.join(save_dir, 'normalize_' + audio_name)
-        cmd = ['ffmpeg-normalize', audio_path, '-o', normalize_wav_path, '-ar', '16000']
-        subprocess.call(cmd)
+        #cmd = ['ffmpeg-normalize', audio_path, '-o', normalize_wav_path, '-ar', '16000']
+        #subprocess.call(cmd)
+        normalize_wav_path = audio_path 
 
         # MFCC, https://github.com/supasorn/synthesizing_obama_network_training
         print('extract MFCC...')
@@ -375,14 +382,11 @@ def main(args, save_dir, model_path, audio_path=None, mfcc_path=None, audiowavlm
 
     sample_fn = diffusion.p_sample_loop     # predict x_start
 
-    style = style2onehot[audiowavlm_path.split('/')[-1].split('_')[1]]
-    # style = [0, 0, 1, 0, 0, 0]
-    # style = style2onehot['Neutral']
-    print(style)
+    style = style2onehot[audio_path.split('/')[-1].split('_')[1]]
 
-    wavlm_model = wavlm_init(mydevice)
-    inference(args, wavlm_model, mfcc, sample_fn, model, n_frames=max_len, smoothing=True, SG_filter=True, minibatch=True, skip_timesteps=0, style=style, seed=123456)      # style2onehot['Happy']
-
+    #wavlm_model = wavlm_init(mydevice)
+    #inference(args, wavlm_model, mfcc, sample_fn, model, n_frames=max_len, smoothing=True, SG_filter=True, minibatch=True, skip_timesteps=0, style=style, seed=123456)      # style2onehot['Happy']
+    inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=True, SG_filter=True, minibatch=True, skip_timesteps=0, n_seed=8, style=style, seed=123456, smooth_foot=False)
 
 if __name__ == '__main__':
     '''
@@ -395,14 +399,15 @@ if __name__ == '__main__':
 
     # prefix = str(datetime.now().strftime('%Y%m%d_%H%M%S'))
     # save_dir = 'sample_' + prefix
-    save_dir = 'sample_dir'
+    save_dir = '/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/inference_result'
 
     parser = argparse.ArgumentParser(description='DiffuseStyleGesture')
-    parser.add_argument('--config', default='./configs/DiffuseStyleGesture.yml')
-    parser.add_argument('--gpu', type=str, default='2')
-    parser.add_argument('--no_cuda', type=list, default=['2'])
-    parser.add_argument('--model_path', type=str, default='./model000450000.pt')
-    parser.add_argument('--audiowavlm_path', type=str, default='')
+    parser.add_argument('--config', default='/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/main/mydiffusion_zeggs/configs/my_upperbody.yaml')
+    parser.add_argument('--gpu', type=str, default='0')
+    parser.add_argument('--no_cuda', type=list, default=['0'])
+    parser.add_argument('--model_path', type=str, default='/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/output_trained_model/model000050000.pt')
+    #parser.add_argument('--audiowavlm_path', type=str, default='/home/challenge-user/challenge-audio-to-gesture/datasets/wav/007_Sad_1_x_1_0.wav')
+    parser.add_argument('--audio_path', type=str, default='/home/challenge-user/challenge-audio-to-gesture/datasets/wav/007_Sad_1_x_1_0.wav')
     parser.add_argument('--max_len', type=int, default=0)
     args = parser.parse_args()
     with open(args.config) as f:
@@ -417,5 +422,6 @@ if __name__ == '__main__':
 
     batch_size = 1
 
-    main(config, save_dir, config.model_path, audio_path=None, mfcc_path=None, audiowavlm_path=config.audiowavlm_path, max_len=config.max_len)
+    #main(config, save_dir, config.model_path, audio_path=None, mfcc_path=None, audiowavlm_path=config.audiowavlm_path, max_len=config.max_len)
+    main(config, save_dir, config.model_path, audio_path=config.audio_path, mfcc_path=None, audiowavlm_path=None, max_len=config.max_len)
 
