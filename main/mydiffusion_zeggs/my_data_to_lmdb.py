@@ -164,10 +164,13 @@ def build_dataset(
 # ---------------------------
 
 def parse_args():
+    # Get the script's directory for relative paths
+    script_dir = Path(__file__).parent.parent.parent
+    
     ap = argparse.ArgumentParser(description="Convert wav+npy dataset to LMDB for DiffuseStyleGesture")
-    ap.add_argument("--npy_dir", default="/home/challenge-user/challenge-audio-to-gesture/datasets/npy", type=Path, help="Folder with *.npy pose files")
-    ap.add_argument("--wav_dir", default="/home/challenge-user/challenge-audio-to-gesture/datasets/wav", type=Path, help="Folder with matching *.wav files")
-    ap.add_argument("--out_lmdb", default="/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/processed_lmdb", type=Path, help="Output folder (will be created)")
+    ap.add_argument("--npy_dir", default=script_dir / "datasets" / "npy", type=Path, help="Folder with *.npy pose files")
+    ap.add_argument("--wav_dir", default=script_dir / "datasets" / "wav", type=Path, help="Folder with matching *.wav files")
+    ap.add_argument("--out_lmdb", default=script_dir / "sarper_lmdb" / "processed_lmdb", type=Path, help="Output folder (will be created)")
     ap.add_argument("--split", type=float, default=0.9, help="Train split ratio (default 0.9)")
     ap.add_argument("--map_size_mb", type=int, default=512, help="LMDB map size in MB (default 512)")
     return ap.parse_args()

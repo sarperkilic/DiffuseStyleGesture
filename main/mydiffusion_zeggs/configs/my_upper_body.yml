@@ -1,10 +1,10 @@
 # ZEGGS
-train_data_path: "/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/processed_lmdb/train_lmdb"     
-val_data_path: "/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/processed_lmdb/valid_lmdb"
+train_data_path: "../../sarper_lmdb/processed_lmdb/train_lmdb"     
+val_data_path: "../../sarper_lmdb/processed_lmdb/valid_lmdb"
 
 # 60 fps + normalized
-data_mean: "/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/processed_lmdb/mean.npz"
-data_std: "/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/processed_lmdb/std.npz"
+data_mean: "../../sarper_lmdb/processed_lmdb/mean.npz"
+data_std: "../../sarper_lmdb/processed_lmdb/std.npz"
 
 motion_dim: 63
 n_poses: 110       # 88 -> 20*60
@@ -15,12 +15,12 @@ batch_size: 32     # 384 -> 32
 loader_workers: 2
 epochs: 10     # 500 -> 10
 save_per_epochs: 1     # 20 -> 1
-model_save_path: "/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/output_trained_model"
+model_save_path: "../../sarper_lmdb/output_trained_model"
 name: "DiffuseStyleGesture"
 log_interval: 50
 weight_decay: 0.0
 lr_anneal_steps: 0
-save_dir: "/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/output_trained_model"
+save_dir: "../../sarper_lmdb/output_trained_model"
 audio_feat: "mfcc"     # wav encoder; mfcc; wavlm
 audio_feature_dim: 13
 style_dim: 64
