@@ -53,7 +53,9 @@ class DataPreprocessor:
         self.dst_lmdb_env = lmdb.open(out_lmdb_dir, map_size=map_size)
         self.n_out_samples = 0
 
-        self.model = wavlm_init(device)
+        #self.model = wavlm_init(device)
+        #self.device = device
+        self.model = None
         self.device = device
 
     def run(self):
@@ -110,7 +112,7 @@ class DataPreprocessor:
             audio_start = math.floor(start_idx / len(clip_skeleton) * len(clip_audio_raw))
             audio_end = audio_start + self.audio_sample_length
             sample_audio = clip_audio_raw[audio_start:audio_end]
-            sample_wavlm = wav2wavlm(self.model, sample_audio, device=device)
+            #sample_wavlm = wav2wavlm(self.model, sample_audio, device=device)
 
             motion_info = {'vid': vid,
                            'start_frame_no': start_idx,
@@ -120,7 +122,7 @@ class DataPreprocessor:
 
             sample_skeletons_list.append(sample_skeletons)
             sample_mfcc_list.append(sample_mfcc)
-            sample_wavlm_list.append(sample_wavlm)
+            #sample_wavlm_list.append(sample_wavlm)
             sample_audio_list.append(sample_audio)
             sample_codes_list.append(clip_styles_raw)
             aux_info.append(motion_info)
@@ -140,12 +142,12 @@ class DataPreprocessor:
 
         if len(sample_skeletons_list) > 0:
             with self.dst_lmdb_env.begin(write=True) as txn:
-                for poses, codes, wavlm in zip(sample_skeletons_list, sample_codes_list, sample_wavlm_list):
+                for poses, codes, mfcc in zip(sample_skeletons_list, sample_codes_list, sample_mfcc_list):
                     poses = np.asarray(poses)
 
                     # save
                     k = '{:010}'.format(self.n_out_samples).encode('ascii')
-                    v = [poses, codes, wavlm]
+                    v = [poses, codes, mfcc]
                     v = pyarrow.serialize(v).to_buffer()
                     txn.put(k, v)
                     self.n_out_samples += 1

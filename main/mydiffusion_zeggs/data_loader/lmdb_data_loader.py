@@ -24,6 +24,8 @@ class TrinityDataset(Dataset):
                 preloaded_dir = lmdb_dir + '_cache_' + model.split('_')[-1]
             if 'WavLM' in model:
                 preloaded_dir = lmdb_dir + '_cache_WavLM'
+            if model and model.lower() == 'mfcc':
+                preloaded_dir = lmdb_dir + '_cache_mfcc'
         else:
             preloaded_dir = lmdb_dir + '_cache'
         if not os.path.exists(preloaded_dir):

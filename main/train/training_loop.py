@@ -146,7 +146,8 @@ class TrainLoop:
                 # motion = torch.rand(2, 135, 1, 80).to(self.device)
                 # pose_seq, _, style, audio, mfcc, wavlm = batch  # (batch, 240, 135), (batch, 30), (batch, 64000)
                 # pose_seq, _, style, _, _, wavlm = batch
-                pose_seq, style, wavlm = batch
+                #pose_seq, style, wavlm = batch
+                pose_seq, style, mfcc = batch
                 motion = pose_seq.permute(0, 2, 1).unsqueeze(2).to(self.device)
 
                 cond_['y']['seed'] = motion[..., 0:self.n_seed]

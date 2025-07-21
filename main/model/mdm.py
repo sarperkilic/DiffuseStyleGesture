@@ -4,6 +4,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import sys
+import os
+
+current_script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_script_dir)
+
 from local_attention.rotary import SinusoidalEmbeddings, apply_rotary_pos_emb
 from local_attention import LocalAttention
 
@@ -11,7 +17,7 @@ class MDM(nn.Module):
     def __init__(self, modeltype, njoints, nfeats,
                  latent_dim=256, ff_size=1024, num_layers=8, num_heads=4, dropout=0.1,
                  ablation=None, activation="gelu", legacy=False, data_rep='rot6d', dataset='amass', clip_dim=512,
-                 arch='trans_enc', emb_trans_dec=False, audio_feat='', n_seed=1, cond_mode='', **kargs):
+                 arch='trans_enc', emb_trans_dec=False, audio_feat='', motion_dim=0, n_seed=1, cond_mode='', **kargs):
         super().__init__()
 
         self.legacy = legacy
@@ -34,6 +40,10 @@ class MDM(nn.Module):
         self.action_emb = kargs.get('action_emb', None)
 
         self.input_feats = self.njoints * self.nfeats
+
+        # ADDED
+        self.njoints = motion_dim 
+        self.input_feats = motion_dim
 
         self.normalize_output = kargs.get('normalize_encoder_output', False)
 
