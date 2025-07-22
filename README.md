@@ -76,9 +76,9 @@ For sampling, sample.py script
 ```
 python3 sample.py \
   --config ./configs/my_upper_body.yml \
-  --model_path /home/codeway/srper/DiffuseStyleGesture/sarper_lmdb/output_trained_model/model000050000.pt \
-  --audio_path /home/codeway/srper/DiffuseStyleGesture/datasets/wav/001_Neutral_0_mirror_x_1_0.wav \
-  --save_dir /home/codeway/srper/DiffuseStyleGesture/sarper_lmdb/inference_result \
+  --model_path /home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/output_trained_model/model000050000.pt \
+  --audio_path /home/challenge-user/challenge-audio-to-gesture/test/007_Sad_1_x_1_0.wav \
+  --save_dir /home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/inference_result \
   --max_len 0
 ```
 Produces *.npy gesture file. 
