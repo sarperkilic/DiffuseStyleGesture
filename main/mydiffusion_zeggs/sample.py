@@ -189,8 +189,10 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
         out_dir_vec = sample.data.cpu().numpy()
         sampled_seq = out_dir_vec.squeeze(2).transpose(0, 2, 1).reshape(batch_size, n_frames, model.njoints)
 
-    data_mean_ = np.load("/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/processed_lmdb/mean.npz")['mean'].squeeze()
-    data_std_ = np.load("/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/processed_lmdb/std.npz")['std'].squeeze()
+    data_mean_path = args.data_mean
+    data_std_path = args.data_std
+    data_mean_ = np.load(data_mean_path)['mean'].squeeze()
+    data_std_ = np.load(data_std_path)['std'].squeeze()
 
     data_mean = np.array(data_mean_).squeeze()
     data_std = np.array(data_std_).squeeze()
@@ -206,11 +208,11 @@ def inference_mfcc(args, mfcc, sample_fn, model, n_frames=0, smoothing=False, SG
     prefix += '_%s' % (n_frames)
     prefix += '_' + str(style)
     prefix += '_' + str(seed)
-    np.save(os.path.join(save_dir, prefix + '.npy'), out_poses)
-    if minibatch:
-        pose2bvh(out_poses, os.path.join(save_dir, prefix + '.bvh'), length=n_frames - n_seed, smoothing=SG_filter)
-    else:
-        pose2bvh(out_poses, os.path.join(save_dir, prefix + '.bvh'), length=n_frames, smoothing=SG_filter)
+    np.save(os.path.join(args.save_dir, prefix + '.npy'), out_poses)
+    #if minibatch:
+    #    pose2bvh(out_poses, os.path.join(save_dir, prefix + '.bvh'), length=n_frames - n_seed, smoothing=SG_filter)
+    #else:
+    #    pose2bvh(out_poses, os.path.join(save_dir, prefix + '.bvh'), length=n_frames, smoothing=SG_filter)
 
 
 def inference(args, wavlm_model, audio, sample_fn, model, n_frames=0, smoothing=False, SG_filter=False, minibatch=False, skip_timesteps=0, n_seed=8, style=None, seed=123456):
@@ -399,7 +401,6 @@ if __name__ == '__main__':
 
     # prefix = str(datetime.now().strftime('%Y%m%d_%H%M%S'))
     # save_dir = 'sample_' + prefix
-    save_dir = '/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/inference_result'
 
     parser = argparse.ArgumentParser(description='DiffuseStyleGesture')
     parser.add_argument('--config', default='/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/main/mydiffusion_zeggs/configs/my_upperbody.yaml')
@@ -407,7 +408,8 @@ if __name__ == '__main__':
     parser.add_argument('--no_cuda', type=list, default=['0'])
     parser.add_argument('--model_path', type=str, default='/home/challenge-user/challenge-audio-to-gesture/DiffuseStyleGesture/sarper_lmdb/output_trained_model/model000050000.pt')
     #parser.add_argument('--audiowavlm_path', type=str, default='/home/challenge-user/challenge-audio-to-gesture/datasets/wav/007_Sad_1_x_1_0.wav')
-    parser.add_argument('--audio_path', type=str, default='/home/challenge-user/challenge-audio-to-gesture/datasets/wav/007_Sad_1_x_1_0.wav')
+    parser.add_argument('--audio_path', type=str, default='/home/challenge-user/challenge-audio-to-gesture/test/007_Sad_1_x_1_0.wav')
+    parser.add_argument('--save_dir', type=str, default='/home/challenge-user/challenge-audio-to-gesture/test/007_Sad_1_x_1_0.wav')
     parser.add_argument('--max_len', type=int, default=0)
     args = parser.parse_args()
     with open(args.config) as f:
@@ -423,5 +425,5 @@ if __name__ == '__main__':
     batch_size = 1
 
     #main(config, save_dir, config.model_path, audio_path=None, mfcc_path=None, audiowavlm_path=config.audiowavlm_path, max_len=config.max_len)
-    main(config, save_dir, config.model_path, audio_path=config.audio_path, mfcc_path=None, audiowavlm_path=None, max_len=config.max_len)
+    main(config, config.save_dir, config.model_path, audio_path=config.audio_path, mfcc_path=None, audiowavlm_path=None, max_len=config.max_len)
 
