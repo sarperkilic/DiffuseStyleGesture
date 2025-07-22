@@ -85,8 +85,9 @@ Produces *.npy gesture file.
 
 To visualize this npy file, **npy2video.py** script can be run. 
 
-https://github.com/user-attachments/assets/c35da404-d3e7-40f0-8586-4bd8b9430902
+You can reach the visualized npy file from this link: 
 
+https://drive.google.com/file/d/1_y2rmIStaB5enontxvMV9J3UVl_nNW7E/view?usp=sharing
 
 ### Analysis of Result:
 
